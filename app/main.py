@@ -35,10 +35,7 @@ def build_proxy_client() -> httpx.Client:
         "timeout": httpx.Timeout(10.0),
     }
     if PROXY_URL:
-        client_kwargs["proxies"] = {
-            "http://": PROXY_URL,
-            "https://": PROXY_URL,
-        }
+        client_kwargs["proxy"] = PROXY_URL
     return httpx.Client(**client_kwargs)
 
 

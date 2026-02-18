@@ -55,8 +55,6 @@ def test_external_health_error(test_client):
         assert "Failed to reach external URL" in response.json()["detail"]
 
 
-# --- BREAKS in httpx 0.28: proxies= parameter REMOVED (TypeError) ---
-
 def test_build_proxy_client_with_proxy():
     from app import main
     original = main.PROXY_URL
@@ -69,28 +67,16 @@ def test_build_proxy_client_with_proxy():
         main.PROXY_URL = original
 
 
-def test_httpx_proxies_dict_format():
-    client = httpx.Client(
-        proxies={
-            "http://": "http://localhost:8080",
-            "https://": "http://localhost:8080",
-        }
-    )
+def test_httpx_proxy_single_url():
+    client = httpx.Client(proxy="http://localhost:8080")
     assert client is not None
     client.close()
 
 
-def test_httpx_proxies_single_url():
-    client = httpx.Client(proxies="http://localhost:8080")
-    assert client is not None
-    client.close()
-
-
-# --- BREAKS in httpx 0.28: app= parameter REMOVED (TypeError) ---
-
-def test_async_client_app_shortcut():
+def test_async_client_with_transport():
     async def _run():
-        async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             response = await client.get("/api/healthchecker")
             assert response.status_code == 200
             assert response.json() == {"message": "The API is LIVE!!"}
@@ -98,17 +84,16 @@ def test_async_client_app_shortcut():
     asyncio.run(_run())
 
 
-def test_async_client_app_shortcut_post_json():
+def test_async_client_with_transport_post_json():
     async def _run():
-        async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             response = await client.get("/api/healthchecker")
             assert response.status_code == 200
             assert "LIVE" in response.json()["message"]
 
     asyncio.run(_run())
 
-
-# --- BREAKS in httpx 0.28: follow_redirects default changes False -> True ---
 
 def test_httpx_client_default_no_redirect():
     client = httpx.Client()
@@ -121,11 +106,9 @@ def test_httpx_async_client_default_no_redirect():
     assert client.follow_redirects is False
 
 
-# --- BREAKS in httpx 0.28: JSON uses compact representation ---
-
 def test_httpx_json_body_format():
     request = httpx.Request("POST", "http://example.com", json={"key": "value", "num": 1})
     body = request.content.decode("utf-8")
     parsed = json.loads(body)
     assert parsed == {"key": "value", "num": 1}
-    assert b": " in request.content
+    assert b":" in request.content
