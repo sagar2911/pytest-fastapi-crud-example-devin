@@ -3,7 +3,7 @@ import time
 import logging
 
 import httpx
-from app import models, user, activity
+from app import models, user, activity, auth
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine
@@ -58,6 +58,7 @@ def shutdown_event():
 
 app.include_router(user.router, tags=["Users"], prefix="/api/users")
 app.include_router(activity.router, tags=["Activity Logs"], prefix="/api/activity")
+app.include_router(auth.router, tags=["Auth"], prefix="/api/auth")
 
 
 @app.get("/api/healthchecker")
