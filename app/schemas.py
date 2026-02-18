@@ -1,7 +1,7 @@
 from enum import Enum
 from datetime import datetime
-from typing import List
-from pydantic import BaseModel, Field
+from typing import List, Optional
+from pydantic import BaseModel, Field, validator
 from uuid import UUID
 
 
@@ -47,3 +47,90 @@ class ListUserResponse(BaseModel):
 class DeleteUserResponse(BaseModel):
     Status: Status
     Message: str
+
+
+class ActivityLogCreateSchema(BaseModel):
+    user_id: UUID = Field(
+        ..., description="The user ID this activity belongs to",
+        example="3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    )
+    action: str = Field(
+        ..., description="The action performed", example="login",
+        min_length=1, max_length=100
+    )
+    description: Optional[str] = Field(
+        None, description="Detailed description of the activity",
+        example="User logged in from web browser"
+    )
+    ip_address: Optional[str] = Field(
+        None, description="IP address of the client", example="192.168.1.1"
+    )
+
+    @validator("action")
+    def action_must_be_lowercase(cls, v):
+        return v.lower()
+
+    @validator("ip_address")
+    def validate_ip_format(cls, v):
+        if v is None:
+            return v
+        parts = v.split(".")
+        if len(parts) != 4:
+            raise ValueError("IP address must have 4 octets")
+        for part in parts:
+            if not part.isdigit() or not 0 <= int(part) <= 255:
+                raise ValueError("Each octet must be between 0 and 255")
+        return v
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+        schema_extra = {
+            "example": {
+                "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "action": "login",
+                "description": "User logged in from web browser",
+                "ip_address": "192.168.1.1"
+            }
+        }
+
+
+class ActivityLogResponseSchema(BaseModel):
+    id: UUID
+    user_id: UUID
+    action: str
+    description: Optional[str] = None
+    ip_address: Optional[str] = None
+    createdAt: datetime | None = None
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+
+class ActivityLogResponse(BaseModel):
+    Status: Status
+    Log: ActivityLogResponseSchema
+
+
+class ListActivityLogResponse(BaseModel):
+    status: Status
+    results: int
+    logs: List[ActivityLogResponseSchema]
+
+
+class ExternalHealthResponse(BaseModel):
+    url: str = Field(..., example="https://httpbin.org/get")
+    status_code: int = Field(..., example=200)
+    redirected: bool = Field(..., example=False)
+    response_time_ms: float = Field(..., example=150.5)
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "url": "https://httpbin.org/get",
+                "status_code": 200,
+                "redirected": False,
+                "response_time_ms": 150.5
+            }
+        }
