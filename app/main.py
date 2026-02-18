@@ -1,14 +1,17 @@
+import os
 import time
 import logging
 
 import httpx
-from app import models, user, activity
+from app import models, user, activity, auth
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine
 from app import schemas
 
 logger = logging.getLogger(__name__)
+
+PROXY_URL = os.environ.get("HTTP_PROXY_URL", "")
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -27,13 +30,22 @@ app.add_middleware(
 )
 
 
+def build_proxy_client() -> httpx.Client:
+    client_kwargs = {
+        "timeout": httpx.Timeout(10.0),
+    }
+    if PROXY_URL:
+        client_kwargs["proxies"] = {
+            "http://": PROXY_URL,
+            "https://": PROXY_URL,
+        }
+    return httpx.Client(**client_kwargs)
+
+
 @app.on_event("startup")
 def startup_event():
     logger.info("Application starting up...")
-    app.state.http_client = httpx.Client(
-        follow_redirects=False,
-        timeout=httpx.Timeout(10.0),
-    )
+    app.state.http_client = build_proxy_client()
     logger.info("HTTP client initialized")
 
 
@@ -46,6 +58,7 @@ def shutdown_event():
 
 app.include_router(user.router, tags=["Users"], prefix="/api/users")
 app.include_router(activity.router, tags=["Activity Logs"], prefix="/api/activity")
+app.include_router(auth.router, tags=["Auth"], prefix="/api/auth")
 
 
 @app.get("/api/healthchecker")
