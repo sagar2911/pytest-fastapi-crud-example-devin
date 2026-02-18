@@ -79,3 +79,14 @@ def user_payload_updated(user_id):
         "address": "321 Farmville",
         "activated": True,
     }
+
+
+@pytest.fixture()
+def activity_payload(user_id):
+    """Generate an activity log payload."""
+    return {
+        "user_id": user_id,
+        "action": "LOGIN",
+        "description": "User logged in from web browser",
+        "ip_address": "192.168.1.1",
+    }
