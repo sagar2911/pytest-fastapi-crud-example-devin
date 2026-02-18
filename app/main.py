@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+from contextlib import asynccontextmanager
 
 import httpx
 from app import models, user, activity, auth
@@ -13,9 +14,27 @@ logger = logging.getLogger(__name__)
 
 PROXY_URL = os.environ.get("HTTP_PROXY_URL", "")
 
-models.Base.metadata.create_all(bind=engine)
+def build_proxy_client() -> httpx.Client:
+    client_kwargs = {
+        "timeout": httpx.Timeout(10.0),
+    }
+    if PROXY_URL:
+        client_kwargs["proxy"] = PROXY_URL
+    return httpx.Client(**client_kwargs)
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    logger.info("Application starting up...")
+    application.state.http_client = build_proxy_client()
+    logger.info("HTTP client initialized")
+    yield
+    logger.info("Application shutting down...")
+    application.state.http_client.close()
+    logger.info("HTTP client closed")
+
+
+app = FastAPI(lifespan=lifespan)
 
 origins = [
     "http://localhost:3000",
@@ -28,33 +47,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-def build_proxy_client() -> httpx.Client:
-    client_kwargs = {
-        "timeout": httpx.Timeout(10.0),
-    }
-    if PROXY_URL:
-        client_kwargs["proxies"] = {
-            "http://": PROXY_URL,
-            "https://": PROXY_URL,
-        }
-    return httpx.Client(**client_kwargs)
-
-
-@app.on_event("startup")
-def startup_event():
-    logger.info("Application starting up...")
-    app.state.http_client = build_proxy_client()
-    logger.info("HTTP client initialized")
-
-
-@app.on_event("shutdown")
-def shutdown_event():
-    logger.info("Application shutting down...")
-    app.state.http_client.close()
-    logger.info("HTTP client closed")
-
 
 app.include_router(user.router, tags=["Users"], prefix="/api/users")
 app.include_router(activity.router, tags=["Activity Logs"], prefix="/api/activity")

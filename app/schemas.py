@@ -1,7 +1,7 @@
 from enum import Enum
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 
 
@@ -66,11 +66,13 @@ class ActivityLogCreateSchema(BaseModel):
         None, description="IP address of the client", example="192.168.1.1"
     )
 
-    @validator("action")
+    @field_validator("action")
+    @classmethod
     def action_must_be_lowercase(cls, v):
         return v.lower()
 
-    @validator("ip_address")
+    @field_validator("ip_address")
+    @classmethod
     def validate_ip_format(cls, v):
         if v is None:
             return v
@@ -85,7 +87,7 @@ class ActivityLogCreateSchema(BaseModel):
     class Config:
         from_attributes = True
         populate_by_name = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                 "action": "login",
@@ -126,7 +128,7 @@ class ExternalHealthResponse(BaseModel):
     response_time_ms: float = Field(..., example=150.5)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "url": "https://httpbin.org/get",
                 "status_code": 200,

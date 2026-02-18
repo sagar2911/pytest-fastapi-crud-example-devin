@@ -23,7 +23,7 @@ def create_activity_log(
         )
 
     try:
-        log_data = payload.dict()
+        log_data = payload.model_dump()
         if log_data.get("ip_address") is None:
             log_data["ip_address"] = request.client.host if request.client else None
 

@@ -39,19 +39,15 @@ def create_access_token(user_id: str, extra_claims: dict = None) -> str:
         payload.update(extra_claims)
 
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-    if isinstance(token, bytes):
-        token = token.decode("utf-8")
-
     return token
 
 
 def decode_token_verified(token: str) -> dict:
-    return jwt.decode(token, JWT_SECRET)
+    return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
 
 
 def decode_token_unverified(token: str) -> dict:
-    return jwt.decode(token, JWT_SECRET, verify=False)
+    return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"verify_signature": False})
 
 
 def get_token_headers(token: str) -> dict:
