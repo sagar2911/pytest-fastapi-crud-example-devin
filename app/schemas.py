@@ -1,7 +1,7 @@
 from enum import Enum
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from uuid import UUID
 
 
@@ -9,9 +9,9 @@ class UserBaseSchema(BaseModel):
 
     id: UUID | None = None
     first_name: str = Field(
-        ..., description="The first name of the user", example="John"
+        ..., description="The first name of the user", examples=["John"]
     )
-    last_name: str = Field(..., description="The last name of the user", example="Doe")
+    last_name: str = Field(..., description="The last name of the user", examples=["Doe"])
     address: str | None = None
     activated: bool = False
     createdAt: datetime | None = None
@@ -52,25 +52,27 @@ class DeleteUserResponse(BaseModel):
 class ActivityLogCreateSchema(BaseModel):
     user_id: UUID = Field(
         ..., description="The user ID this activity belongs to",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"]
     )
     action: str = Field(
-        ..., description="The action performed", example="login",
+        ..., description="The action performed", examples=["login"],
         min_length=1, max_length=100
     )
     description: Optional[str] = Field(
         None, description="Detailed description of the activity",
-        example="User logged in from web browser"
+        examples=["User logged in from web browser"]
     )
     ip_address: Optional[str] = Field(
-        None, description="IP address of the client", example="192.168.1.1"
+        None, description="IP address of the client", examples=["192.168.1.1"]
     )
 
-    @validator("action")
+    @field_validator("action")
+    @classmethod
     def action_must_be_lowercase(cls, v):
         return v.lower()
 
-    @validator("ip_address")
+    @field_validator("ip_address")
+    @classmethod
     def validate_ip_format(cls, v):
         if v is None:
             return v
@@ -85,7 +87,7 @@ class ActivityLogCreateSchema(BaseModel):
     class Config:
         from_attributes = True
         populate_by_name = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
                 "action": "login",
@@ -120,13 +122,13 @@ class ListActivityLogResponse(BaseModel):
 
 
 class ExternalHealthResponse(BaseModel):
-    url: str = Field(..., example="https://httpbin.org/get")
-    status_code: int = Field(..., example=200)
-    redirected: bool = Field(..., example=False)
-    response_time_ms: float = Field(..., example=150.5)
+    url: str = Field(..., examples=["https://httpbin.org/get"])
+    status_code: int = Field(..., examples=[200])
+    redirected: bool = Field(..., examples=[False])
+    response_time_ms: float = Field(..., examples=[150.5])
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "url": "https://httpbin.org/get",
                 "status_code": 200,
