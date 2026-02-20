@@ -64,24 +64,22 @@ def test_build_proxy_client_with_proxy():
     try:
         client = build_proxy_client()
         assert client is not None
+        assert client._transport is not None
         client.close()
     finally:
         main.PROXY_URL = original
 
 
-def test_httpx_proxies_dict_format():
+def test_httpx_proxy_param():
     client = httpx.Client(
-        proxies={
-            "http://": "http://localhost:8080",
-            "https://": "http://localhost:8080",
-        }
+        proxy="http://localhost:8080"
     )
     assert client is not None
     client.close()
 
 
-def test_httpx_proxies_single_url():
-    client = httpx.Client(proxies="http://localhost:8080")
+def test_httpx_proxy_single_url():
+    client = httpx.Client(proxy="http://localhost:8080")
     assert client is not None
     client.close()
 
@@ -90,7 +88,8 @@ def test_httpx_proxies_single_url():
 
 def test_async_client_app_shortcut():
     async def _run():
-        async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             response = await client.get("/api/healthchecker")
             assert response.status_code == 200
             assert response.json() == {"message": "The API is LIVE!!"}
@@ -100,7 +99,8 @@ def test_async_client_app_shortcut():
 
 def test_async_client_app_shortcut_post_json():
     async def _run():
-        async with httpx.AsyncClient(app=app, base_url="http://testserver") as client:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             response = await client.get("/api/healthchecker")
             assert response.status_code == 200
             assert "LIVE" in response.json()["message"]
@@ -128,4 +128,4 @@ def test_httpx_json_body_format():
     body = request.content.decode("utf-8")
     parsed = json.loads(body)
     assert parsed == {"key": "value", "num": 1}
-    assert b": " in request.content
+    assert b":" in request.content
