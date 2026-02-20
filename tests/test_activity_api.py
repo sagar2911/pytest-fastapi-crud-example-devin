@@ -93,26 +93,26 @@ def test_activity_invalid_ip_format(test_client, user_payload):
     assert detail["input"] == "not-an-ip"
 
 
-def test_schema_dict_method():
+def test_schema_model_dump_method():
     schema = ActivityLogCreateSchema(
         user_id="3fa85f64-5717-4562-b3fc-2c963f66afa6",
         action="LOGIN",
         description="test",
         ip_address="10.0.0.1",
     )
-    data = schema.dict()
+    data = schema.model_dump()
     assert "user_id" in data
     assert "action" in data
     assert data["action"] == "login"
 
-    data_exclude = schema.dict(exclude={"description"})
+    data_exclude = schema.model_dump(exclude={"description"})
     assert "description" not in data_exclude
 
-    data_include = schema.dict(include={"action", "ip_address"})
+    data_include = schema.model_dump(include={"action", "ip_address"})
     assert set(data_include.keys()) == {"action", "ip_address"}
 
 
-def test_schema_from_orm_pattern():
+def test_schema_model_validate_pattern():
     class FakeOrmObj:
         id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
         user_id = "3fa85f64-5717-4562-b3fc-2c963f66afa6"
@@ -122,7 +122,7 @@ def test_schema_from_orm_pattern():
         createdAt = None
 
     obj = FakeOrmObj()
-    schema = ActivityLogResponseSchema.from_orm(obj)
+    schema = ActivityLogResponseSchema.model_validate(obj)
     assert schema.action == "login"
     assert schema.ip_address == "10.0.0.1"
 
@@ -131,5 +131,5 @@ def test_schema_config_class_present():
     assert hasattr(ActivityLogCreateSchema, "Config")
     config = ActivityLogCreateSchema.Config
     assert config.from_attributes is True
-    assert config.schema_extra is not None
-    assert "example" in config.schema_extra
+    assert config.json_schema_extra is not None
+    assert "example" in config.json_schema_extra

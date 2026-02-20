@@ -82,7 +82,7 @@ def update_user(
         )
 
     try:
-        update_data = payload.dict(exclude_unset=True)
+        update_data = payload.model_dump(exclude_unset=True)
         user_query.update(update_data, synchronize_session=False)
         db.commit()
         db.refresh(db_user)
