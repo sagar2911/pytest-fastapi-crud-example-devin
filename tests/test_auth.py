@@ -12,61 +12,60 @@ from app.auth import (
 )
 
 
-# --- BREAKS in PyJWT 2.x: jwt.encode() returns str, not bytes ---
+# --- PyJWT 2.x: jwt.encode() returns str, not bytes ---
 
-def test_jwt_encode_returns_bytes():
+def test_jwt_encode_returns_string():
     token = jwt.encode({"sub": "user1", "exp": int(time.time()) + 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    assert isinstance(token, bytes)
+    assert isinstance(token, str)
 
 
-def test_jwt_encode_bytes_decodable():
+def test_jwt_encode_string_format():
     token = jwt.encode({"sub": "user1", "exp": int(time.time()) + 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    token_str = token.decode("utf-8")
-    assert "." in token_str
-    parts = token_str.split(".")
+    assert "." in token
+    parts = token.split(".")
     assert len(parts) == 3
 
 
-# --- BREAKS in PyJWT 2.x: jwt.decode() without algorithms parameter ---
+# --- PyJWT 2.x: jwt.decode() requires algorithms parameter ---
 
-def test_jwt_decode_without_algorithms():
+def test_jwt_decode_with_algorithms():
     token = jwt.encode({"sub": "user1", "exp": int(time.time()) + 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    payload = jwt.decode(token, JWT_SECRET)
+    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     assert payload["sub"] == "user1"
 
 
-# --- BREAKS in PyJWT 2.x: verify=False parameter removed ---
+# --- PyJWT 2.x: use options={"verify_signature": False} instead of verify=False ---
 
-def test_jwt_decode_verify_false():
+def test_jwt_decode_no_verify_signature():
     token = jwt.encode({"sub": "user1", "exp": int(time.time()) + 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    payload = jwt.decode(token, JWT_SECRET, verify=False)
+    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"verify_signature": False})
     assert payload["sub"] == "user1"
 
 
-def test_jwt_decode_verify_false_wrong_key():
+def test_jwt_decode_no_verify_wrong_key():
     token = jwt.encode({"sub": "user1", "exp": int(time.time()) + 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    payload = jwt.decode(token, "wrong-key", verify=False)
+    payload = jwt.decode(token, "wrong-key", algorithms=[JWT_ALGORITHM], options={"verify_signature": False})
     assert payload["sub"] == "user1"
 
 
-def test_jwt_decode_verify_false_no_key():
+def test_jwt_decode_no_verify_no_key():
     token = jwt.encode({"sub": "user1", "exp": int(time.time()) + 3600}, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    payload = jwt.decode(token, None, verify=False)
+    payload = jwt.decode(token, options={"verify_signature": False}, algorithms=[JWT_ALGORITHM])
     assert payload["sub"] == "user1"
 
 
-def test_jwt_decode_expired_with_verify_false():
+def test_jwt_decode_expired_with_no_verify():
     token = jwt.encode({"sub": "user1", "exp": int(time.time()) - 100}, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    payload = jwt.decode(token, JWT_SECRET, verify=False)
+    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"verify_signature": False, "verify_exp": False})
     assert payload["sub"] == "user1"
 
 
-# --- BREAKS in PyJWT 2.x: exception hierarchy changed ---
+# --- PyJWT 2.x: exception handling with algorithms parameter ---
 
 def test_jwt_expired_raises_expired_signature_error():
     token = jwt.encode({"sub": "user1", "exp": int(time.time()) - 100}, JWT_SECRET, algorithm=JWT_ALGORITHM)
     try:
-        jwt.decode(token, JWT_SECRET)
+        jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
         assert False, "Should have raised"
     except jwt.ExpiredSignatureError:
         pass
@@ -74,7 +73,7 @@ def test_jwt_expired_raises_expired_signature_error():
 
 def test_jwt_invalid_token_raises_decode_error():
     try:
-        jwt.decode("not.a.token", JWT_SECRET)
+        jwt.decode("not.a.token", JWT_SECRET, algorithms=[JWT_ALGORITHM])
         assert False, "Should have raised"
     except jwt.DecodeError:
         pass
