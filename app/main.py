@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 PROXY_URL = os.environ.get("HTTP_PROXY_URL", "")
 
+models.Base.metadata.create_all(bind=engine)
+
+
 def build_proxy_client() -> httpx.Client:
     client_kwargs = {
         "timeout": httpx.Timeout(10.0),
